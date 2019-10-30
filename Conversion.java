@@ -8,6 +8,81 @@ class Conversion extends ConvCLI  {
 	private static List<String> databaseNames= new ArrayList<>();
 	private static List<String> tableNames= new ArrayList<>();
 	
+	
+	
+	String InsertInto(String fullCommand) {
+		String toReturn="", currTableName="", tValues="";
+				//add spaces before and after brackets
+				if (fullCommand.indexOf('{')>=0) {
+				if (fullCommand.charAt(fullCommand.indexOf('{'))+1!=' ') {
+					String comeco, meio, fim;
+					comeco=fullCommand.substring(0, fullCommand.indexOf('{')+1);
+					meio=fullCommand.substring(fullCommand.indexOf('{')+1, fullCommand.lastIndexOf('}'));
+					fim=fullCommand.substring(fullCommand.lastIndexOf('}'));
+					fullCommand=comeco+" "+meio+" "+fim;
+				}
+				//add space before the first bracket
+				if (fullCommand.indexOf('{')>=0) {
+					if (fullCommand.charAt(fullCommand.indexOf('{')-1)!=' ') {
+					String comeco, fim;
+					comeco=fullCommand.substring(0, fullCommand.indexOf('{'));
+					fim=fullCommand.substring( fullCommand.indexOf('{'));
+					fullCommand=comeco+" "+fim;
+					}
+				}
+				}
+				int [] allCommas=allIndexesOf(fullCommand, ",");
+				//add spaces before and after commas
+				for (int i=0;i<allCommas.length;i++) {
+					if (fullCommand.charAt(allCommas[i]+1+i)!=' ') {
+						String comeco, fim;
+						comeco=fullCommand.substring(0, (allCommas[i])+i+1);
+						fim=fullCommand.substring(allCommas[i]+i+1);
+						fullCommand=comeco+" "+fim;
+					}
+				}
+				allCommas=allIndexesOf(fullCommand, ",");
+				for (int i=0;i<allCommas.length;i++) {
+					if (allCommas[i]>=0) {
+					if (fullCommand.charAt(allCommas[i]-1+i)!=' ') {
+						String comeco, fim;
+						comeco=fullCommand.substring(0, (allCommas[i])+i);
+						fim=fullCommand.substring(allCommas[i]+i);
+						fullCommand=comeco+" "+fim;
+					}
+					}
+				}
+		
+				
+		//now, you can start to convert it
+		String[] everyThing= allWords(fullCommand);
+		if (everyThing.length>2) {
+			if (everyThing[1].startsWith("tb")) {
+				currTableName=toLocalUppercase(everyThing[1].substring(2), 0);
+			}
+			else {
+				currTableName=toLocalUppercase(everyThing[1], 0);
+			}
+			for (int i=0;i<concatTableValues.size();i++) {
+				if (currTableName.equals(tableNames.get(i))) tValues=concatTableValues.get(i);
+			}
+			everyThing[0]="insert into tb"+currTableName.trim();
+			everyThing[1]="("+tValues+")\nvalues";
+			for (int i=0;i<everyThing.length;i++) {
+				everyThing[i]=everyThing[i].replace("{", "(").replace("}", ")");
+			}
+			for (int i=0;i<everyThing.length;i++) {
+				toReturn+=everyThing[i]+" ";
+			}
+		}
+		else {
+			toReturn="escreve o comando direito vadia puta";
+		}
+		return toReturn;
+	}
+	
+	
+	
 	String createBase(String CB) {
 		String toReturn="", dbName="", databaseName="";
 		String[] everyThing= allWords(CB);
@@ -22,7 +97,7 @@ class Conversion extends ConvCLI  {
 				databaseName=toLocalUppercase(everyThing[1], 0);
 				dbName="db"+toLocalUppercase(everyThing[1], 0);
 			}
-			//databaseNames.add(databaseName);
+			databaseNames.add(databaseName);
 			everyThing[0]="create database "+dbName+"\ngo\nuse "+dbName;
 			toReturn+=everyThing[0];
 		}
@@ -31,9 +106,15 @@ class Conversion extends ConvCLI  {
 		}
 		return toReturn;
 	}
-	String CreateTable (String ogLine) {
+	
+	
+	
+	String CreateTable (String ogLine)  {
 		String toReturn="", tableName, tbName, concatValues="";
 		List<String> tuplas= new ArrayList<>();
+		if (ogLine.indexOf("}")<0 && ogLine.indexOf("{")>=0) {
+			ogLine= ogLine+"}";
+		}
 		//delete semicolon at the end
 		if (ogLine.charAt(ogLine.length()-2)==';') {
 			String comeco, fim;
@@ -71,7 +152,7 @@ class Conversion extends ConvCLI  {
 		allSemiColons=allIndexesOf(ogLine, ";");
 		//add spaces before semicolons
 		for (int i=0;i<allSemiColons.length;i++) {
-			if (allSemiColons.length>=2) {
+			if (allSemiColons.length>=5) {
 			if (ogLine.charAt(allSemiColons[i]-1+i)!=' ') {
 				String comeco, fim;
 				comeco=ogLine.substring(0, allSemiColons[i]+i);
@@ -104,28 +185,38 @@ class Conversion extends ConvCLI  {
 				//replace the abbreviations and such
 				if (everything[i].equalsIgnoreCase("{")) everything[i]="(\n	cod"+tableName+" int primary key identity (1:1)	;";
 				if (everything[i].equalsIgnoreCase("}")) everything[i]="\n)";
-				else if (everything[i].equals("nn")) everything[i]="not null";
-				else if (everything[i].equalsIgnoreCase("nome")) everything[i]="nome, varchar (64) not null";
-				else if (everything[i].equals("cpf")) everything[i]="cpf, varchar (14) not null";
-				else if (everything[i].equalsIgnoreCase("rg")) everything[i]="rg, varchar (13) not null";
-				else if (everything[i].equalsIgnoreCase("dtn")) everything[i]="dataNasc, smalldatetime not null";
-				else if (everything[i].equalsIgnoreCase("val")) everything[i]="valor, smallmoney not null";
-				else if (everything[i].equalsIgnoreCase("vtot")) everything[i]="valorTotal, smallmoney not null";
-				else if (everything[i].equalsIgnoreCase("dte")) everything[i]="data, smalldatetime";
-				else if (everything[i].equalsIgnoreCase("desc")) everything[i]="descricao, varchar (128)";
-				else if (everything[i].equalsIgnoreCase("num")) everything[i]="num, int";
-				else if (everything[i].equalsIgnoreCase("pag")) everything[i]="tipo, varchar (24) not null";
-				else if (everything[i].equalsIgnoreCase("qtd")) everything[i]="quantidade, int not null";
+				if (everything[i].equals("nn")) everything[i]="not null";
+				if (everything[i].equalsIgnoreCase("nome") || everything[i].equals("nome;")) everything[i]="nome, varchar (64) not null;";
+				else if (everything[i].equals("cpf")|| everything[i].equals("cpf;")) everything[i]="cpf, varchar (14) not null;";
+				else if (everything[i].equalsIgnoreCase("rg")|| everything[i].equals("rg;")) everything[i]="rg, varchar (13) not null;";
+				else if (everything[i].equalsIgnoreCase("dtn")|| everything[i].equals("dtn;")) everything[i]="dataNasc, smalldatetime not null;";
+				else if (everything[i].equalsIgnoreCase("val")|| everything[i].equals("val;")) everything[i]="valor, smallmoney not null;";
+				else if (everything[i].equalsIgnoreCase("vtot")|| everything[i].equals("vtot;")) everything[i]="valorTotal, smallmoney not null;";
+				else if (everything[i].equalsIgnoreCase("dte")|| everything[i].equals("dte;")) everything[i]="data, smalldatetime;";
+				else if (everything[i].equalsIgnoreCase("desc")|| everything[i].equals("desc;")) everything[i]="descricao, varchar (128);";
+				else if (everything[i].equalsIgnoreCase("num")|| everything[i].equals("num;")) everything[i]="num, int;";
+				else if (everything[i].equalsIgnoreCase("pag")|| everything[i].equals("pag;")) everything[i]="tipo, varchar (24) not null;";
+				else if (everything[i].equalsIgnoreCase("qtd")|| everything[i].equals("qtd;")) everything[i]="quantidade, int not null;";
+				if (i==everything.length-2 && everything[i].indexOf(";")>=0) everything[i]=everything[i].replace(";", "");
 				//add regular values into the values list 
+				//System.out.println(everything[i]);
 				if (everything[i].indexOf(';')==-1 && everything[i].indexOf(",")>=0 && everything[i].indexOf('@')==-1) {
 					String currValue=everything[i].substring(0, everything[i].indexOf(','));
 					currValue=currValue+tableName;
 					tuplas.add(currValue);
+					//System.out.println(currValue);
 				}
-				else if (everything[i].indexOf(";")>=0 && everything[i].indexOf(",")>=0 && everything[i].indexOf('@')==-1) {
+				else if (everything[i].indexOf(";")>=0 && everything[i].indexOf(";")!=everything[i].length()-1 && everything[i].indexOf(",")>=0 && everything[i].indexOf('@')==-1) {
 					String currValue=everything[i].substring(1, everything[i].indexOf(","));
 					currValue=currValue+tableName;
 					tuplas.add(currValue);
+					//System.out.println(currValue);
+				}
+				else if (everything[i].indexOf(";")>=0 && everything[i].indexOf(";")==everything[i].length()-1 && everything[i].indexOf(",")>=0 && everything[i].indexOf('@')==-1) {
+					String currValue=everything[i].substring(0, everything[i].indexOf(","));
+					currValue=currValue+tableName;
+					tuplas.add(currValue);
+					//System.out.println(currValue);
 				}
 				//add foreign keys to the list
 				else if (everything[i].indexOf("@")>=0) {
@@ -150,9 +241,9 @@ class Conversion extends ConvCLI  {
 		for (int i=0;i<tuplas.size();i++) {
 			//System.out.println(tuplas.get(i));
 			if (i!=tuplas.size()-1) concatValues=concatValues+tuplas.get(i)+", ";
-			else concatValues=concatValues+tuplas.get(i);
+			else concatValues+=tuplas.get(i);
 		}
-		//System.out.println(concatValues);
+		//System.out.println("\n_______"+concatValues+"\n______");
 		concatTableValues.add(concatValues);
 		tableNames.add(tableName);
 		return toReturn;
